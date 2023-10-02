@@ -67,7 +67,7 @@ class TextMelLoader(torch.utils.data.Dataset):
         return text_norm
 
     def __getitem__(self, index):
-        return self.get_mel_text_pair(self.audiopaths_and_text[index])
+        return self.get_mel_text_pair(self.audiopaths_and_text[index]), self.audiopaths_and_text[index]
 
     def __len__(self):
         return len(self.audiopaths_and_text)
@@ -85,11 +85,15 @@ class TextMelCollate():
         ------
         batch: [text_normalized, mel_normalized]
         """
+        paths = [i[1] for i in batch]
+        batch = [i[0] for i in batch]
         # Right zero-pad all one-hot text sequences to max input length
         input_lengths, ids_sorted_decreasing = torch.sort(
             torch.LongTensor([len(x[0]) for x in batch]),
             dim=0, descending=True)
         max_input_len = input_lengths[0]
+        reorder_path = [paths[i] for i in ids_sorted_decreasing]
+        paths = reorder_path
 
         text_padded = torch.LongTensor(len(batch), max_input_len)
         text_padded.zero_()
@@ -113,7 +117,7 @@ class TextMelCollate():
             mel_padded[i, :, :mel.size(1)] = mel
             output_lengths[i] = mel.size(1)
 
-        return text_padded, input_lengths, mel_padded, output_lengths
+        return text_padded, input_lengths, mel_padded, output_lengths, paths
 
 
 """Multi speaker version"""

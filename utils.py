@@ -9,7 +9,15 @@ import numpy as np
 from scipy.io.wavfile import read
 import torch
 
+import random
+import string
+import sox
+
 MATPLOTLIB_FLAG = False
+
+TARGET_SAMPLE_RATE = 22050
+TFM = sox.Transformer()
+TFM.set_output_format(rate=TARGET_SAMPLE_RATE)
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging
@@ -131,7 +139,16 @@ def plot_alignment_to_numpy(alignment, info=None):
 
 
 def load_wav_to_torch(full_path):
+  to_delete = False
+  if '.wav' not in full_path:
+    name = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+    new_path = f'/tmp/{name}.wav'
+    TFM.build_file(full_path, new_path)
+    full_path = new_path
+    to_delete = True
   sampling_rate, data = read(full_path)
+  if to_delete:
+    os.remove(new_path)
   return torch.FloatTensor(data.astype(np.float32)), sampling_rate
 
 
